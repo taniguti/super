@@ -6,7 +6,7 @@
 # S.U.P.E.R.M.A.N. optimizes the macOS software update experience.
 # by Kevin M. White
 #
-# Version 3.0b3
+# Version 3.0b3 (jlemaes branch)
 # 2022/11/03
 # https://github.com/Macjutsu/super
 #
@@ -22,7 +22,7 @@
 # MARK: *** Usage & Help ***
 ################################################################################
 
-# Show usage documentation. 
+# Show usage documentation.
 showUsage() {
 echo "
   S.U.P.E.R.M.A.N.
@@ -67,7 +67,7 @@ echo "
   Update & Restart Options:
   [--policy-triggers=PolicyTrigger,PolicyTrigger,etc...]
   [--skip-updates] [--no-skip-updates] [--force-restart] [--no-force-restart]
-  
+
   Upgrade Options:
   [--install-major-upgrade] [--no-install-major-upgrade] [--install-minor-update]
   [--no-install-minor-update] [--push-major-upgrade] [--no-push-major-upgrade]
@@ -109,7 +109,7 @@ echo "
   <key>TestMode</key> <true/> | <false/>
   <key>TestModeTimeout</key> <string>seconds</string>
   <key>VerboseMode</key> <true/> | <false/>
-  
+
   ** For detailed documentation visit: https://github.com/Macjutsu/super/wiki
   ** Or use --help to automatically open the S.U.P.E.R.M.A.N. Wiki.
 "
@@ -1475,14 +1475,14 @@ if [[ "$macosARCH" == "arm64" ]] && [[ -n $adminACCOUNT ]]; then
 		superNEWACCT="super"
 		superNEWFULL="Super Update Service"
 	fi
-	
+
 	# If a custom super service account password is requested via $superPASSWORD.
 	if [[ -n $superPASSWORD ]]; then
 		superNEWPASS="$superPASSWORD"
 	else # Use the default random password for the super service account.
 		superNEWPASS=$(uuidgen)
 	fi
-	
+
 	# Save and validate new super service account credentials, and validate retrieval.
 	sendToLog "Starter: Saving new credentials for super service account \"$superNEWACCT\"..."
 	defaults write "$superPLIST" SuperAccount -string "$superNEWACCT"
@@ -2727,7 +2727,7 @@ fi
 # If a full softwareupdate check is required.
 if [[ "$fullCheckREQUIRED" == "TRUE" ]]; then
 	checkSoftwareUpdate
-	
+
 	# Various double-checking and validation when softwareupdate misbehaves.
 	if [[ "$checkTIMEOUT" == "TRUE" ]]; then
 		sendToLog "Status: Re-checking for Apple software updates via softwareupdate..."
@@ -2765,14 +2765,14 @@ if [[ "$updatesAVAILABLE" == "TRUE" ]]; then
 	[[ "$verboseModeOPTION" == "TRUE" ]] && sendToLog "Verbose Mode: Function ${FUNCNAME[0]}: propertyUpdatesAVAILABLE is: $propertyUpdatesAVAILABLE"
 	defaults delete "$superPLIST" UpdatesAvailable 2> /dev/null
 	defaults write "$superPLIST" UpdatesAvailable -string "$propertyUpdatesAVAILABLE"
-	
+
 	if [[ $macosMAJOR -ge 11 ]]; then
 		propertySystemUpdateAVAILABLE=$(defaults read "$asuPLIST" RecommendedUpdates 2> /dev/null | awk '/MobileSoftwareUpdate/ { print $3 }' | sed 's/;//g')
 		[[ "$verboseModeOPTION" == "TRUE" ]] && sendToLog "Verbose Mode: Function ${FUNCNAME[0]}: propertySystemUpdateAVAILABLE is: $propertySystemUpdateAVAILABLE"
 		defaults delete "$superPLIST" SystemUpdateAvailable 2> /dev/null
 		defaults write "$superPLIST" SystemUpdateAvailable -string "$propertySystemUpdateAVAILABLE"
 	fi
-	
+
 	oldIFS="$IFS"; IFS=$'\n'
 	propertyUpdatesARRAY=($(defaults read "$asuPLIST" RecommendedUpdates | grep "Identifier" | sed -e 's/        Identifier = //g' -e 's/"//g' -e 's/;//g'))
 	[[ "$verboseModeOPTION" == "TRUE" ]] && sendToLog "Verbose Mode: Function ${FUNCNAME[0]}: propertyUpdatesARRAY[] is: \n${propertyUpdatesARRAY[*]}"
@@ -3050,7 +3050,7 @@ oldIFS="$IFS"; IFS=$'\n'
 for i in "${!recommendedLABLES[@]}"; do
 	sendToLog "Status: Installing Apple software update $((i + 1)): ${recommendedLABLES[i]}..."
 	sendToASULog "Status: Installing Apple software update $((i + 1)): ${recommendedLABLES[i]}..."
-	
+
 	# The update process is backgrounded and will be watched via a while loop later on. Also note the different requirements between macOS versions.
 	if [[ $macosMAJOR -ge 12 ]]; then
 			if [[ "$currentUSER" == "FALSE" ]]; then
@@ -3068,7 +3068,7 @@ for i in "${!recommendedLABLES[@]}"; do
 		asuPID=$!
 	fi
 	recommendedTIMEOUT="TRUE"
-	
+
 	# Watch $asuLOG while waiting for the update workflow to complete. Note this while read loop has a timeout based on $recommendedTimeoutSECONDS.
 	while read -t $recommendedTimeoutSECONDS -r logLINE ; do
 		if echo "$logLINE" | grep -w 'Done with'; then
@@ -3082,10 +3082,10 @@ for i in "${!recommendedLABLES[@]}"; do
 		fi
 	done < <(tail -n 0 -F "$asuLOG")
 	[[ "$verboseModeOPTION" == "TRUE" ]] && sendToLog "Verbose Mode: Function ${FUNCNAME[0]}: recommendedTIMEOUT: $recommendedTIMEOUT"
-	
+
 	# If the update workflow did not complete after $recommendedTimeoutSECONDS seconds, then clean-up and record error.
 	if [[ "$recommendedTIMEOUT" == "TRUE" ]] || [[ -z $updateRECOMMENDED ]]; then
-		if [[ "$recommendedTIMEOUT" == "TRUE" ]]; then 
+		if [[ "$recommendedTIMEOUT" == "TRUE" ]]; then
 			sendToLog "Error: Apple softwareupdate timed out after $recommendedTimeoutSECONDS seconds while trying to install Apple software update: ${recommendedLABLES[i]}"
 			sendToASULog "Error: Apple softwareupdate timed out after $recommendedTimeoutSECONDS seconds while trying to install Apple software update: ${recommendedLABLES[i]}"
 			updateERROR="TRUE"
@@ -3190,7 +3190,7 @@ if [[ $macosMAJOR -ge 11 ]]; then
 			break
 		fi
 	done < <(tail -n 0 -F "$updateLOG")
-	
+
 	# If the preparing process did not start after $downloadTimeoutSECONDS seconds, then clean-up and try again later.
 	if [[ "$downloadTIMEOUT" == "TRUE" ]]; then
 		sendToASULog "**** S.U.P.E.R.M.A.N. ASU MINOR SYSTEM DOWNLOAD TIMEOUT FAILURE ****"
@@ -3204,7 +3204,7 @@ if [[ $macosMAJOR -ge 11 ]]; then
 		kickAppleSoftwareUpdate
 		makeLaunchDaemonCalendar
 	fi
-	
+
 	if [[ "$alreadyDownloaded" == "FALSE" ]]; then
 		workflowTIMEOUT="TRUE"
 		# Note this while read loop has a timeout based on $prepareTimeoutSECONDS.
@@ -3311,7 +3311,7 @@ if [[ $commandRESULT -eq 200 ]] || [[ $commandRESULT -eq 201 ]]; then
 	sendToLog "Status: Successful MDM system download command request."
 	sendBlankPush
 	mdmTIMEOUT="TRUE"
-	
+
 	# Some helpfull logging while waiting for Jamf Pro's mandatory 5 minute delay. Note this while read loop has a timeout based on $mdmTimeoutSECONDS.
 	while read -t $mdmTimeoutSECONDS -r logLINE ; do
 		if echo "$logLINE" | grep -q -w 'Received HTTP response (200) \[Acknowledged(ScheduleOSUpdateScan)'; then
@@ -3321,7 +3321,7 @@ if [[ $commandRESULT -eq 200 ]] || [[ $commandRESULT -eq 201 ]]; then
 			break
 		fi
 	done < <(tail -n 0 -F "$mdmLOG")
-	
+
 	# Only continue workflow if it did not timeout.
 	if [[ "$mdmTIMEOUT" == "FALSE" ]]; then
 		timerEND=300
@@ -3334,7 +3334,7 @@ if [[ $commandRESULT -eq 200 ]] || [[ $commandRESULT -eq 201 ]]; then
 		sendToLog "Status: Jamf Pro's mandatory 5 minute delay should be complete, sending Blank Push..."
 		sendBlankPush
 		mdmTIMEOUT="TRUE"
-	
+
 		# Watch $mdmLOG while waiting for the MDM workflow to complete. Note this while read loop has a timeout based on $mdmTimeoutSECONDS.
 		while read -t $mdmTimeoutSECONDS -r logLINE ; do
 			if echo "$logLINE" | grep -q -w 'Received HTTP response (200) \[Error'; then
@@ -3352,7 +3352,7 @@ if [[ $commandRESULT -eq 200 ]] || [[ $commandRESULT -eq 201 ]]; then
 			fi
 		done < <(tail -n 0 -F "$mdmLOG")
 	fi
-	
+
 	# If the MDM push commands did not complete after $mdmTimeoutSECONDS seconds, then clean-up and try again later.
 	if [[ "$mdmTIMEOUT" == "TRUE" ]]; then
 		kill -9 "$mdmStreamPID" > /dev/null 2>&1
@@ -3366,7 +3366,7 @@ if [[ $commandRESULT -eq 200 ]] || [[ $commandRESULT -eq 201 ]]; then
 		kickAppleSoftwareUpdate
 		makeLaunchDaemonCalendar
 	fi
-	
+
 	logPROGRESS=""
 	downloadTIMEOUT="TRUE"
 	alreadyDownloaded="FALSE"
@@ -3389,7 +3389,7 @@ if [[ $commandRESULT -eq 200 ]] || [[ $commandRESULT -eq 201 ]]; then
 			break
 		fi
 	done < <(tail -n 0 -F "$updateLOG")
-	
+
 	# If the preparing process did not start after $downloadTimeoutSECONDS seconds, then clean-up and try again later.
 	if [[ "$downloadTIMEOUT" == "TRUE" ]]; then
 		kill -9 "$updateStreamPID" > /dev/null 2>&1
@@ -3595,7 +3595,7 @@ if [[ "$testModeOPTION" != "TRUE" ]]; then # Not in test mode.
 		sendToStatus "Running: Starting install workflow of minor system update via softwareupdate command..."
 		sendToASULog "**** S.U.P.E.R.M.A.N. ASU MINOR SYSTEM UPDATE START ****"
 	fi
-	
+
 	# For macOS 11 or later, start log streaming for softwareupdate progress and send to $updateLOG.
 	if [[ $macosMAJOR -ge 11 ]]; then
 		sendToLog "Status: Check $asuLOG, $updateLOG, or /var/log/install.log for more detail."
@@ -3607,7 +3607,7 @@ if [[ "$testModeOPTION" != "TRUE" ]]; then # Not in test mode.
 	else
 		sendToLog "Status: Check $asuLOG or /var/log/install.log for more detail."
 	fi
-	
+
 	# The update process is backgrounded and will be watched via while loops later on. Also note the different requirements between macOS versions.
 	if [[ $macosMAJOR -ge 12 ]]; then
 		if [[ "$currentUSER" == "FALSE" ]]; then
@@ -3654,7 +3654,7 @@ if [[ "$testModeOPTION" != "TRUE" ]]; then # Not in test mode.
 		disown -h
 	fi
 	workflowTIMEOUT="TRUE"
-	
+
 	# For macOS 11 or later, watch $updateLOG while waiting for the download/install workflow to complete.
 	if [[ $macosMAJOR -ge 11 ]]; then
 		# This is the workflow if the download/prepare is still required.
@@ -3673,7 +3673,7 @@ if [[ "$testModeOPTION" != "TRUE" ]]; then # Not in test mode.
 					break
 				fi
 			done < <(tail -n 0 -F "$updateLOG")
-			
+
 			# If the preparing process did not start after $downloadTimeoutSECONDS seconds, then clean-up and try again later.
 			if [[ "$downloadTIMEOUT" == "TRUE" ]]; then
 				kill -9 "$updateStreamPID" > /dev/null 2>&1
@@ -3684,7 +3684,7 @@ if [[ "$testModeOPTION" != "TRUE" ]]; then # Not in test mode.
 				kickAppleSoftwareUpdate
 				makeLaunchDaemonCalendar
 			fi
-			
+
 			# Note this while read loop has a timeout based on $prepareTimeoutSECONDS.
 			prepareTIMEOUT="TRUE"
 			while read -t $prepareTimeoutSECONDS -r logLINE ; do
@@ -3695,7 +3695,7 @@ if [[ "$testModeOPTION" != "TRUE" ]]; then # Not in test mode.
 					break
 				fi
 			done < <(tail -n 0 -F "$updateLOG")
-			
+
 			# If the preparing process did not complete after $prepareTimeoutSECONDS seconds, then clean-up and try again later.
 			if [[ "$prepareTIMEOUT" == "TRUE" ]]; then
 				kill -9 "$updateStreamPID" > /dev/null 2>&1
@@ -3707,7 +3707,7 @@ if [[ "$testModeOPTION" != "TRUE" ]]; then # Not in test mode.
 				makeLaunchDaemonCalendar
 			fi
 		fi
-		
+
 		# This is the workflow once the download/prepare has been completed. Note this while read loop has a timeout based on $applyTimeoutSECONDS.
 		while read -t $applyTimeoutSECONDS -r logLINE ; do
 			if echo "$logLINE" | grep -q -w '(start): phase:APPLYING stalled:NO'; then
@@ -3730,7 +3730,7 @@ if [[ "$testModeOPTION" != "TRUE" ]]; then # Not in test mode.
 		done < <(tail -n 0 -F "$asuLOG")
 	fi
 	[[ "$verboseModeOPTION" == "TRUE" ]] && sendToLog "Verbose Mode: Function ${FUNCNAME[0]}: workflowTIMEOUT: $workflowTIMEOUT"
-	
+
 	# If the minor system update workflow completed, then prepare for restart.
 	if [[ "$workflowTIMEOUT" == "FALSE" ]]; then
 		[[ "$minorUpdatesDownloadREQUIRED" == "TRUE" ]] && sendToASULog "**** S.U.P.E.R.M.A.N. ASU MINOR SYSTEM DOWNLOAD AND UPDATE COMPLETED ****"
@@ -3798,17 +3798,17 @@ if [[ "$testModeOPTION" != "TRUE" ]]; then # Not in test mode.
 		fi
 	fi
 	sendToLog "Status: Check $mdmLOG, $updateLOG, or /var/log/install.log for more detail."
-	
+
 	# For macOS 11 or later restarting the softwareupdate processes helps to prevent system updates from hanging.
 	kickAppleSoftwareUpdate
-	
+
 	# This pre-flights the MDM query locally and may also be useful for troubleshooting.
 	availableOSUPDATES=$(/usr/libexec/mdmclient AvailableOSUpdates 2> /dev/null)
 	[[ "$verboseModeOPTION" == "TRUE" ]] && sendToLog "Verbose Mode: Function ${FUNCNAME[0]}: availableOSUPDATES is: $availableOSUPDATES"
-	
+
 	# Make sure we still have a valid Jamf Pro API token.
 	checkJamfProServerToken
-	
+
 	# Start log streaming for MDM push acknowledgements and send to $mdmLOG.
 	if [[ "$minorUpdatesDownloadREQUIRED" == "TRUE" ]]; then
 		sendToMDMLog "**** S.U.P.E.R.M.A.N. MDM SYSTEM DOWNLOAD AND UPDATE/UPGRADE START ****"
@@ -3817,7 +3817,7 @@ if [[ "$testModeOPTION" != "TRUE" ]]; then # Not in test mode.
 	fi
 	log stream --predicate '(subsystem == "com.apple.ManagedClient") && (category == "HTTPUtil")' >> "$mdmLOG" &
 	mdmStreamPID=$!
-	
+
 	# Start log streaming for softwareupdate progress and send to $updateLOG.
 	if [[ "$minorUpdatesDownloadREQUIRED" == "TRUE" ]]; then
 		sendToUpdateLog "**** S.U.P.E.R.M.A.N. MDM SYSTEM DOWNLOAD AND UPDATE/UPGRADE START ****"
@@ -3826,8 +3826,8 @@ if [[ "$testModeOPTION" != "TRUE" ]]; then # Not in test mode.
 	fi
 	log stream --predicate '(subsystem == "com.apple.SoftwareUpdateMacController") && (eventMessage CONTAINS[c] "reported progress")' >> "$updateLOG" &
 	updateStreamPID=$!
-	
-	
+
+
 	# Send the Jamf Pro API command to update and restart via MDM.
 	if [[ $jamfVERSION -ge 1038 ]]; then
 		jamfAPIURL="${jamfSERVER}api/v1/macos-managed-software-updates/send-updates"
@@ -3842,13 +3842,13 @@ if [[ "$testModeOPTION" != "TRUE" ]]; then # Not in test mode.
 		commandRESULT=$(curl --header "Authorization: Bearer ${jamfProTOKEN}" --write-out "%{http_code}" --silent --output /dev/null --request POST --url "${jamfSERVER}JSSResource/computercommands/command/ScheduleOSUpdate/action/install/id/${jamfProID}")
 	fi
 	[[ "$verboseModeOPTION" == "TRUE" ]] && sendToLog "Verbose Mode: Function ${FUNCNAME[0]}: commandRESULT is: \n$commandRESULT"
-	
+
 	# If the Jamf Pro API command was successfully created, monitor the update progress.
 	if [[ $commandRESULT -eq 200 ]] || [[ $commandRESULT -eq 201 ]]; then
 		sendToLog "Status: Successful MDM system update/upgrade command request."
 		sendBlankPush
 		mdmTIMEOUT="TRUE"
-		
+
 		# Some helpfull logging while waiting for Jamf Pro's mandatory 5 minute delay. Note this while read loop has a timeout based on $mdmTimeoutSECONDS.
 		while read -t $mdmTimeoutSECONDS -r logLINE ; do
 			if echo "$logLINE" | grep -q -w 'Received HTTP response (200) \[Acknowledged(ScheduleOSUpdateScan)'; then
@@ -3858,7 +3858,7 @@ if [[ "$testModeOPTION" != "TRUE" ]]; then # Not in test mode.
 				break
 			fi
 		done < <(tail -n 0 -F "$mdmLOG")
-		
+
 		# Only continue workflow if it did not timeout.
 		if [[ "$mdmTIMEOUT" == "FALSE" ]]; then
 			timerEND=300
@@ -3878,7 +3878,7 @@ if [[ "$testModeOPTION" != "TRUE" ]]; then # Not in test mode.
 			sendBlankPush
 			mdmTIMEOUT="TRUE"
 			[[ "$currentUSER" != "FALSE" ]] && notifyRestart
-		
+
 			# Watch $mdmLOG while waiting for the MDM workflow to complete. Note this while read loop has a timeout based on $mdmTimeoutSECONDS.
 			while read -t $mdmTimeoutSECONDS -r logLINE ; do
 				if echo "$logLINE" | grep -q -w 'Received HTTP response (200) \[Error'; then
@@ -3901,7 +3901,7 @@ if [[ "$testModeOPTION" != "TRUE" ]]; then # Not in test mode.
 				fi
 			done < <(tail -n 0 -F "$mdmLOG")
 		fi
-		
+
 		# If the MDM push commands did not complete after $mdmTimeoutSECONDS seconds, then clean-up and try again later.
 		if [[ "$mdmTIMEOUT" == "TRUE" ]]; then
 			kill -9 "$mdmStreamPID" > /dev/null 2>&1
@@ -3916,7 +3916,7 @@ if [[ "$testModeOPTION" != "TRUE" ]]; then # Not in test mode.
 			kickAppleSoftwareUpdate
 			makeLaunchDaemonCalendar
 		fi
-		
+
 		# This is the workflow if the download/prepare is still required.
 		if [[ "$minorUpdatesDownloadREQUIRED" == "TRUE" ]]; then
 			logPROGRESS=""
@@ -3933,7 +3933,7 @@ if [[ "$testModeOPTION" != "TRUE" ]]; then # Not in test mode.
 					break
 				fi
 			done < <(tail -n 0 -F "$updateLOG")
-	
+
 			# If the preparing process did not start after $downloadTimeoutSECONDS seconds, then clean-up and try again later.
 			if [[ "$downloadTIMEOUT" == "TRUE" ]]; then
 				kill -9 "$updateStreamPID" > /dev/null 2>&1
@@ -3944,7 +3944,7 @@ if [[ "$testModeOPTION" != "TRUE" ]]; then # Not in test mode.
 				kickAppleSoftwareUpdate
 				makeLaunchDaemonCalendar
 			fi
-			
+
 			# Note this while read loop has a timeout based on $prepareTimeoutSECONDS.
 			prepareTIMEOUT="TRUE"
 			while read -t $prepareTimeoutSECONDS -r logLINE ; do
@@ -3955,7 +3955,7 @@ if [[ "$testModeOPTION" != "TRUE" ]]; then # Not in test mode.
 					break
 				fi
 			done < <(tail -n 0 -F "$updateLOG")
-			
+
 			# If the preparing process did not complete after $prepareTimeoutSECONDS seconds, then clean-up and try again later.
 			if [[ "$prepareTIMEOUT" == "TRUE" ]]; then
 				kill -9 "$updateStreamPID" > /dev/null 2>&1
@@ -3967,7 +3967,7 @@ if [[ "$testModeOPTION" != "TRUE" ]]; then # Not in test mode.
 				makeLaunchDaemonCalendar
 			fi
 		fi
-		
+
 		workflowTIMEOUT="TRUE"
 		# This is the workflow once the download/prepare has been completed. Note this while read loop has a timeout based on $applyTimeoutSECONDS.
 		while read -t $applyTimeoutSECONDS -r logLINE ; do
@@ -3979,7 +3979,7 @@ if [[ "$testModeOPTION" != "TRUE" ]]; then # Not in test mode.
 				break
 			fi
 		done < <(tail -n 0 -F "$updateLOG")
-		
+
 		# If the system update/upgrade completed, then prepare for restart.
 		if [[ "$workflowTIMEOUT" == "FALSE" ]]; then
 			sendToLog "Status: Resetting update/upgrade cached settings."
@@ -4638,7 +4638,7 @@ if [[ "$ibmNotifierVALID" == "TRUE" ]] && [[ "$preferJamfHelperOPTION" != "TRUE"
 		ibmNotifierARRAY+=(-subtitle "$dialogSoftDeadlineBodyCountIBM")
 	fi
 	displayTimeoutTEXT="$dialogSoftDeadlineTimeoutTEXT"
-	
+
 	# Start the dialog.
 	openIbmNotifier
 
@@ -4692,7 +4692,7 @@ if [[ "$ibmNotifierVALID" == "TRUE" ]] && [[ "$preferJamfHelperOPTION" != "TRUE"
 		ibmNotifierARRAY+=(-subtitle "$dialogAskForUpdateBodyUnlimitedIBM")
 	fi
 	displayTimeoutTEXT="$dialogAskForUpdateTimeoutTEXT"
-	
+
 	# If needed, add the $menuDeferSECONDS option to the $ibmNotifierARRAY[].
 	if [[ -n $menuDeferSECONDS ]]; then
 		oldIFS="$IFS"; IFS=','
