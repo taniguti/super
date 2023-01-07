@@ -6,8 +6,8 @@
 # S.U.P.E.R.M.A.N. optimizes the macOS software update experience.
 # by Kevin M. White
 #
-# Version 3.0b3 (jlemaes branch)
-# 2022/11/03
+# Version 3.0b3-p1 (jlemaes branch)
+# 2022/11/27
 # https://github.com/Macjutsu/super
 #
 # NOTE: *** Debugging Stuff ***
@@ -4864,7 +4864,7 @@ else
 fi
 
 # If non-restart required "recommended" Apple software updates are available, then install all available recommended (non-system) updates.
-if [[ "$minorUpdatesRECOMMENDED" == "TRUE" ]]; then
+if [[ "$minorUpdatesRECOMMENDED" == "TRUE" ]] && [[ "$minorUpdateWORKFLOW" != "JAMF" ]] ; then
 	installRecommendedUpdatesASU
 	if [[ "$updateERROR" != "TRUE" ]]; then # If all recommended (non-system) updates are successful, check Apple softwareupdate again and continue workflow.
 		sendToLog "Status: Completed install of all recommended (non-system) updates."
